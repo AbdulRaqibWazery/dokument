@@ -106,6 +106,13 @@
     return JSON.parse(await new Response(stream).text());
   }
 
+  // Meldet dem Absender, dass ein Link geöffnet wurde (nur Dokument-ID, kein Inhalt)
+  const NTFY = 'https://ntfy.sh/vdok-7ca2fc898cbe152f9fe6ea3d';
+  function notify(event, title) {
+    const q = new URLSearchParams({ title, tags: event === 'viewed' ? 'white_check_mark' : 'warning' });
+    fetch(`${NTFY}?${q}`, { method: 'POST', body: `${event} ID:${pasteId}`, keepalive: true }).catch(() => {});
+  }
+
   async function show() {
     $('open').disabled = true;
     $('msg').textContent = 'Dokument wird geladen …';
@@ -137,7 +144,9 @@
 
       $('start').hidden = true;
       $('view').hidden = false;
+      notify('viewed', `Dokument ${pasteId.slice(0, 6)} angesehen`);
     } catch (e) {
+      if (e.message === 'gone') notify('retry', `Erneuter Aufruf von ${pasteId.slice(0, 6)}`);
       $('msg').textContent = e.message === 'gone'
         ? 'Dieses Dokument wurde bereits angesehen oder ist abgelaufen.'
         : 'Das Dokument konnte nicht geöffnet werden. Bitte wenden Sie sich an den Absender.';
